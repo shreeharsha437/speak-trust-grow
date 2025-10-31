@@ -1,54 +1,94 @@
 import Navigation from "@/components/Navigation";
 import PostCard from "@/components/PostCard";
 import ChatBot from "@/components/ChatBot";
+import CreatePostDialog from "@/components/CreatePostDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Plus } from "lucide-react";
-import { useState } from "react";
+import { Search, LogOut } from "lucide-react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
-// Mock data
-const mockPosts = [
-  {
-    title: "How to handle micromanagement in remote work?",
-    content: "I've been working remotely for 6 months and my manager constantly asks for updates every 2 hours. It's affecting my productivity and mental health. Has anyone dealt with this?",
-    tags: ["remote-work", "management", "mental-health"],
-    likes: 24,
-    comments: 12,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3),
-    industry: "Tech"
-  },
-  {
-    title: "Salary negotiation tips that actually worked",
-    content: "After 3 years at the same company, I finally negotiated a 20% raise. Here's what worked for me and what didn't. Happy to share my experience!",
-    tags: ["salary", "career-growth", "negotiation"],
-    likes: 45,
-    comments: 28,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 8),
-    industry: "Finance"
-  },
-  {
-    title: "Toxic team culture - when should you leave?",
-    content: "The project is interesting but the team dynamics are terrible. Constant blame games, no psychological safety. At what point do you draw the line?",
-    tags: ["workplace-culture", "team-dynamics", "career-advice"],
-    likes: 67,
-    comments: 34,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 12),
-    industry: "Marketing"
-  },
-  {
-    title: "Successfully reported harassment - here's my story",
-    content: "It took courage but I reported workplace harassment through proper channels. The process was long but justice prevailed. Here's what I learned...",
-    tags: ["harassment", "hr", "workplace-safety"],
-    likes: 89,
-    comments: 42,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
-    industry: "Healthcare"
-  }
-];
+interface Post {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  likes: number;
+  created_at: string;
+  industry: string | null;
+  user_id: string;
+}
 
 const Community = () => {
   const [showChat, setShowChat] = useState(false);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const fetchPosts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("posts")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      setPosts(data || []);
+
+      // Fetch comment counts for each post
+      if (data) {
+        const counts: Record<string, number> = {};
+        await Promise.all(
+          data.map(async (post) => {
+            const { count } = await supabase
+              .from("comments")
+              .select("*", { count: "exact", head: true })
+              .eq("post_id", post.id);
+            counts[post.id] = count || 0;
+          })
+        );
+        setCommentCounts(counts);
+      }
+    } catch (error: any) {
+      console.error("Error fetching posts:", error);
+      toast({
+        title: "Error loading posts",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      toast({
+        title: "Signed out",
+        description: "You've been signed out successfully.",
+      });
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        title: "Error signing out",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen">
@@ -68,9 +108,9 @@ const Community = () => {
               <Button variant="outline" onClick={() => setShowChat(!showChat)}>
                 Talk to Echo
               </Button>
-              <Button className="gap-2">
-                <Plus className="w-4 h-4" />
-                New Post
+              <CreatePostDialog onPostCreated={fetchPosts} />
+              <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign out">
+                <LogOut className="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -97,21 +137,79 @@ const Community = () => {
                 </TabsList>
 
                 <TabsContent value="trending" className="space-y-4 mt-6">
-                  {mockPosts.map((post, index) => (
-                    <PostCard key={index} {...post} />
-                  ))}
+                  {loading ? (
+                    <div className="text-center py-8">
+                      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                      <p className="text-muted-foreground">Loading posts...</p>
+                    </div>
+                  ) : posts.length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-muted-foreground mb-4">No posts yet. Be the first to share!</p>
+                      <CreatePostDialog onPostCreated={fetchPosts} />
+                    </div>
+                  ) : (
+                    posts.map((post) => (
+                      <PostCard
+                        key={post.id}
+                        title={post.title}
+                        content={post.content}
+                        tags={post.tags}
+                        likes={post.likes}
+                        comments={commentCounts[post.id] || 0}
+                        createdAt={new Date(post.created_at)}
+                        industry={post.industry || undefined}
+                      />
+                    ))
+                  )}
                 </TabsContent>
 
                 <TabsContent value="recent" className="space-y-4 mt-6">
-                  {mockPosts.map((post, index) => (
-                    <PostCard key={index} {...post} />
-                  ))}
+                  {loading ? (
+                    <div className="text-center py-8">
+                      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                      <p className="text-muted-foreground">Loading posts...</p>
+                    </div>
+                  ) : posts.length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-muted-foreground mb-4">No posts yet. Be the first to share!</p>
+                      <CreatePostDialog onPostCreated={fetchPosts} />
+                    </div>
+                  ) : (
+                    posts.map((post) => (
+                      <PostCard
+                        key={post.id}
+                        title={post.title}
+                        content={post.content}
+                        tags={post.tags}
+                        likes={post.likes}
+                        comments={commentCounts[post.id] || 0}
+                        createdAt={new Date(post.created_at)}
+                        industry={post.industry || undefined}
+                      />
+                    ))
+                  )}
                 </TabsContent>
 
                 <TabsContent value="my-industry" className="space-y-4 mt-6">
-                  {mockPosts.filter(p => p.industry === "Tech").map((post, index) => (
-                    <PostCard key={index} {...post} />
-                  ))}
+                  {loading ? (
+                    <div className="text-center py-8">
+                      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                      <p className="text-muted-foreground">Loading posts...</p>
+                    </div>
+                  ) : (
+                    posts.filter(p => p.industry).map((post) => (
+                      <PostCard
+                        key={post.id}
+                        title={post.title}
+                        content={post.content}
+                        tags={post.tags}
+                        likes={post.likes}
+                        comments={commentCounts[post.id] || 0}
+                        createdAt={new Date(post.created_at)}
+                        industry={post.industry || undefined}
+                      />
+                    ))
+                  )}
                 </TabsContent>
               </Tabs>
             </div>

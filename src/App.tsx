@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Community from "./pages/Community";
 import Insights from "./pages/Insights";
+import Auth from "./pages/Auth";
+import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -18,7 +20,12 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/community" element={<Community />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/community" element={
+            <ProtectedRoute>
+              <Community />
+            </ProtectedRoute>
+          } />
           <Route path="/insights" element={<Insights />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

@@ -50,7 +50,7 @@ const Index = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Why Choose ClearVoice?
+              Why Choose OPEC?
             </h2>
             <p className="text-muted-foreground text-lg">
               Built for professionals who deserve a voice

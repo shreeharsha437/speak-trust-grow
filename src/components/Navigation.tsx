@@ -1,6 +1,7 @@
-import { MessageSquare, BarChart3, Home, Sparkles } from "lucide-react";
+import { MessageSquare, BarChart3, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
+import opecLogo from "@/assets/opec-logo.png";
 
 const Navigation = () => {
   const location = useLocation();
@@ -12,11 +13,9 @@ const Navigation = () => {
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg gradient-hero flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
+            <img src={opecLogo} alt="OPEC Logo" className="w-10 h-10" />
             <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              ClearVoice
+              OPEC
             </span>
           </Link>
           

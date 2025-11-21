@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles } from "lucide-react";
+import opecLogo from "@/assets/opec-logo.png";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -71,7 +71,7 @@ const Auth = () => {
         }
 
         toast({
-          title: "Welcome to ClearVoice!",
+          title: "Welcome to OPEC!",
           description: "Your account has been created successfully.",
         });
       }
@@ -120,11 +120,9 @@ const Auth = () => {
       <Card className="w-full max-w-md shadow-hover">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 rounded-lg gradient-hero flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
+            <img src={opecLogo} alt="OPEC Logo" className="w-16 h-16" />
           </div>
-          <CardTitle className="text-2xl">ClearVoice</CardTitle>
+          <CardTitle className="text-2xl">OPEC</CardTitle>
           <CardDescription>
             Speak Freely. Grow Together.
           </CardDescription>
